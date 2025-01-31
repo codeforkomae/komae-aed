@@ -1,1 +1,90 @@
-komae aed
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>狛江市 AED マップ</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <script>
+        let map;
+        const KOMAE_CENTER = { lat: 35.6342, lng: 139.5786 }; // 狛江市の中心付近
+
+        async function initMap() {
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: KOMAE_CENTER,
+                zoom: 14,
+            });
+
+            try {
+                const response = await fetch('aed.csv');
+                const text = await response.text();
+                const rows = text.split('\n').slice(1); // ヘッダーを除外
+
+                rows.forEach(row => {
+                    if (!row) return;
+                    const columns = row.split(',');
+                    const name = columns[4];
+                    const address = columns[6];
+                    const lat = columns[8];
+                    const lng = columns[9];
+                    const location = columns[10];
+                    const tel = columns[11];
+                    const availableDays = columns[15];
+                    const startTime = columns[16];
+                    const endTime = columns[17];
+                    const notes = columns[18];
+
+                    if (!lat || !lng) return;
+
+                    const marker = new google.maps.Marker({
+                        position: { lat: parseFloat(lat), lng: parseFloat(lng) },
+                        map: map,
+                        title: name,
+                        icon: {
+                            url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png'
+                        }
+                    });
+
+                    const infoContent = `
+                        <div style="padding: 10px; max-width: 300px;">
+                            <h3 style="margin: 0 0 8px 0;">${name}</h3>
+                            <p style="margin: 4px 0;"><strong>住所:</strong> ${address}</p>
+                            <p style="margin: 4px 0;"><strong>設置場所:</strong> ${location}</p>
+                            ${tel ? `<p style="margin: 4px 0;"><strong>電話番号:</strong> ${tel}</p>` : ''}
+                            ${availableDays ? `<p style="margin: 4px 0;"><strong>利用可能曜日:</strong> ${availableDays}</p>` : ''}
+                            ${startTime && endTime ? `<p style="margin: 4px 0;"><strong>利用可能時間:</strong> ${startTime}〜${endTime}</p>` : ''}
+                            ${notes ? `<p style="margin: 4px 0;"><strong>備考:</strong> ${notes}</p>` : ''}
+                        </div>
+                    `;
+
+                    const infoWindow = new google.maps.InfoWindow({
+                        content: infoContent
+                    });
+
+                    marker.addListener('click', () => {
+                        infoWindow.open(map, marker);
+                    });
+                });
+            } catch (error) {
+                console.error('AEDデータの読み込みに失敗しました:', error);
+            }
+        }
+    </script>
+    <script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=GOOGLE_MAPS_API_KEY&callback=initMap">
+    </script>
+</body>
+</html>
